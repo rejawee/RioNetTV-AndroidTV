@@ -22,6 +22,7 @@ data class UiState(
     val search: String = "",
     val category: String = "الكل",
     val selected: MediaEntry? = null,
+    val detailItem: MediaEntry? = null,
     val selectedSeries: SeriesEntry? = null,
     val episodes: List<MediaEntry> = emptyList(),
     val favorites: Set<String> = emptySet(),
@@ -55,7 +56,7 @@ class RioNetViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
-    fun setSection(s: AppSection) { _state.value = _state.value.copy(section = s, category = "الكل", search = "") }
+    fun setSection(s: AppSection) { _state.value = _state.value.copy(section = s, category = "الكل", search = "", detailItem = null) }
     fun search(v: String) { _state.value = _state.value.copy(search = v) }
     fun category(v: String) { _state.value = _state.value.copy(category = v) }
     fun settings(show: Boolean) { _state.value = _state.value.copy(showSettings = show) }
@@ -123,6 +124,8 @@ class RioNetViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     fun select(item: MediaEntry) { _state.value = _state.value.copy(selected = item) }
+    fun openDetails(item: MediaEntry) { _state.value = _state.value.copy(detailItem = item) }
+    fun closeDetails() { _state.value = _state.value.copy(detailItem = null) }
 
     fun openSeries(s: SeriesEntry) {
         viewModelScope.launch {
