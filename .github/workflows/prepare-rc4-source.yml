@@ -1,0 +1,48 @@
+name: Prepare RC4 editable source
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - '.github/workflows/prepare-rc4-source.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Expand Android project source
+        shell: bash
+        run: |
+          set -euo pipefail
+          tar -xzf source/rionet_source_min.tar.gz
+          test -f build.gradle.kts
+          test -f app/build.gradle.kts
+          test -d app/src/main
+
+      - name: Publish editable RC4 branch
+        shell: bash
+        env:
+          BRANCH: rc4-ui-rebuild
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout -B "$BRANCH"
+          git add -A
+          if git diff --cached --quiet; then
+            echo "No expanded source changes to commit"
+          else
+            git commit -m "Expand Android source for RC4 UI rebuild"
+          fi
+          git push --force origin "$BRANCH"
