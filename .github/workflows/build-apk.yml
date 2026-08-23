@@ -12,6 +12,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
     timeout-minutes: 30
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -19,28 +20,73 @@ jobs:
       - name: Extract RioNet source
         run: tar -xzf source/rionet_source_min.tar.gz
 
-      - name: Apply RC1 build compatibility fix
+      - name: Apply stable API 36 compatibility fixes
         shell: bash
         run: |
           python3 - <<'PY'
           from pathlib import Path
+          import re
 
+          # Root build file: keep the project on the stable AGP 8.x/API 36 line.
           root = Path('build.gradle.kts')
           text = root.read_text()
-          text = text.replace('id("com.android.application") version "8.9.2" apply false', 'id("com.android.application") version "8.10.1" apply false')
+          text, n = re.subn(
+              r'id\("com\.android\.application"\)\s+version\s+"[^"]+"\s+apply\s+false',
+              'id("com.android.application") version "8.10.1" apply false',
+              text,
+              count=1,
+          )
+          if n != 1:
+              raise SystemExit('Could not patch Android Gradle Plugin version')
           root.write_text(text)
 
           app = Path('app/build.gradle.kts')
           text = app.read_text()
-          text = text.replace('androidx.compose:compose-bom:2026.08.00', 'androidx.compose:compose-bom:2026.06.00')
+
+          # API 36 is intentional for this RC build.
+          text = re.sub(r'compileSdk\s*=\s*\d+', 'compileSdk = 36', text)
+          text = re.sub(r'targetSdk\s*=\s*\d+', 'targetSdk = 36', text)
+
+          # Use the June 2026 stable Compose BOM and ENFORCE it. This prevents
+          # transitive dependencies from silently upgrading Compose UI to 1.12,
+          # which requires API 37 / AGP 9.1+.
+          text = re.sub(
+              r'(?:platform|enforcedPlatform)\("androidx\.compose:compose-bom:[^"]+"\)',
+              'enforcedPlatform("androidx.compose:compose-bom:2026.06.00")',
+              text,
+          )
+
+          # Keep Activity on a version known to work with the stable Compose line.
+          text = re.sub(
+              r'androidx\.activity:activity-compose:[^"]+',
+              'androidx.activity:activity-compose:1.13.0',
+              text,
+          )
+
           if 'androidx.activity:activity-ktx' not in text:
-              text = text.replace('implementation("androidx.activity:activity-compose:1.13.0")', 'implementation("androidx.activity:activity-compose:1.13.0")\n    implementation("androidx.activity:activity-ktx:1.13.0")\n    implementation("androidx.compose.material3:material3")')
+              anchor = 'implementation("androidx.activity:activity-compose:1.13.0")'
+              if anchor in text:
+                  text = text.replace(
+                      anchor,
+                      anchor + '\n    implementation("androidx.activity:activity-ktx:1.13.0")',
+                  )
+
+          if 'androidx.compose.material3:material3' not in text:
+              text = text.replace(
+                  'implementation("androidx.activity:activity-ktx:1.13.0")',
+                  'implementation("androidx.activity:activity-ktx:1.13.0")\n    implementation("androidx.compose.material3:material3")',
+              )
+
           app.write_text(text)
 
           settings = Path('app/src/main/java/com/rionet/tv/ui/screens/SettingsScreen.kt')
-          text = settings.read_text()
-          text = text.replace('import androidx.tv.material3.*', 'import androidx.tv.material3.Button\nimport androidx.tv.material3.Text\nimport androidx.compose.material3.TextField')
-          settings.write_text(text)
+          if settings.exists():
+              text = settings.read_text()
+              text = text.replace(
+                  'import androidx.tv.material3.*',
+                  'import androidx.tv.material3.Button\nimport androidx.tv.material3.Text\nimport androidx.compose.material3.TextField',
+              )
+              settings.write_text(text)
           PY
 
       - name: Set up JDK 17
@@ -53,30 +99,37 @@ jobs:
         uses: android-actions/setup-android@v3
 
       - name: Install Android SDK 36
-        run: sdkmanager "platforms;android-36" "build-tools;35.0.0"
+        run: sdkmanager "platforms;android-36" "build-tools;36.0.0"
 
       - name: Set up Gradle 8.11.1
         uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.11.1'
 
-      - name: Verify build configuration
+      - name: Verify patched build configuration
+        shell: bash
         run: |
+          set -e
           java -version
           gradle --version
+          echo "--- root build.gradle.kts ---"
           grep -n "com.android.application" build.gradle.kts
-          grep -n "compose-bom" app/build.gradle.kts
+          echo "--- app/build.gradle.kts ---"
+          grep -nE "compileSdk|targetSdk|compose-bom|activity-compose|activity-ktx" app/build.gradle.kts
+          grep -q 'version "8.10.1"' build.gradle.kts
+          grep -q 'compileSdk = 36' app/build.gradle.kts
+          grep -q 'enforcedPlatform("androidx.compose:compose-bom:2026.06.00")' app/build.gradle.kts
 
       - name: Build debug APK
         run: gradle --no-daemon --stacktrace :app:assembleDebug
 
       - name: Rename APK
-        run: cp app/build/outputs/apk/debug/app-debug.apk RioNetTV-AndroidTV-v1.0.1-Proxy-RC1.apk
+        run: cp app/build/outputs/apk/debug/app-debug.apk RioNetTV-AndroidTV-v1.0.1-Proxy-RC2.apk
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: RioNetTV-AndroidTV-v1.0.1-Proxy-RC1
-          path: RioNetTV-AndroidTV-v1.0.1-Proxy-RC1.apk
+          name: RioNetTV-AndroidTV-v1.0.1-Proxy-RC2
+          path: RioNetTV-AndroidTV-v1.0.1-Proxy-RC2.apk
           if-no-files-found: error
           retention-days: 14
