@@ -31,14 +31,13 @@ fun RootScreen(vm: RioNetViewModel) {
     if (s.showSettings) { SettingsScreen(vm, s); return }
     if (s.selectedSeries != null) { SeriesDetailScreen(vm, s) { playing = it }; return }
 
-    Row(Modifier.fillMaxSize().background(Bg)) {
-        RioSideRail(
+    Column(Modifier.fillMaxSize().background(Bg)) {
+        RioTopNavigation(
             section = s.section,
-            connected = s.error.isBlank(),
             onSection = vm::setSection,
             onSettings = { vm.settings(true) }
         )
-        Box(Modifier.weight(1f).fillMaxHeight()) {
+        Box(Modifier.weight(1f).fillMaxWidth()) {
             when (s.section) {
                 AppSection.HOME -> HomeScreen(s, { playing = it }, vm::toggleFavorite)
                 AppSection.LIVE, AppSection.MOVIES, AppSection.SERIES -> CatalogScreen(vm, s) { playing = it }
@@ -46,53 +45,50 @@ fun RootScreen(vm: RioNetViewModel) {
                 AppSection.FAVORITES -> FavoritesScreen(s, { playing = it }, vm::toggleFavorite)
             }
             if (s.loading) {
-                Text("جاري تحميل مكتبتك…", color = MutedStrong, fontSize = 16.sp, modifier = Modifier.align(Alignment.TopEnd).padding(34.dp))
+                Text("جاري تحميل مكتبتك…", color = MutedStrong, fontSize = 16.sp, modifier = Modifier.align(Alignment.TopStart).padding(28.dp))
             } else if (s.error.isNotBlank()) {
-                Text(s.error, color = Color(0xFFFF6B6B), fontSize = 14.sp, modifier = Modifier.align(Alignment.TopEnd).padding(34.dp))
+                Text(s.error, color = RioError, fontSize = 14.sp, modifier = Modifier.align(Alignment.TopStart).padding(28.dp))
             }
         }
     }
 }
 
 @Composable
-private fun RioSideRail(section: AppSection, connected: Boolean, onSection: (AppSection) -> Unit, onSettings: () -> Unit) {
-    Column(
-        Modifier.width(224.dp).fillMaxHeight().background(Panel).padding(horizontal = 18.dp, vertical = 28.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
+private fun RioTopNavigation(section: AppSection, onSection: (AppSection) -> Unit, onSettings: () -> Unit) {
+    Row(
+        Modifier.fillMaxWidth().height(92.dp).background(Control).padding(horizontal = 48.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween
     ) {
-        Text("RioNet", fontSize = 30.sp, fontWeight = FontWeight.ExtraBold)
-        Text("TV", color = PurpleSoft, fontSize = 13.sp, fontWeight = FontWeight.Bold)
-        Spacer(Modifier.height(42.dp))
-        AppSection.entries.forEach { sec ->
-            RailItem(sec.title, section == sec) { onSection(sec) }
-            Spacer(Modifier.height(8.dp))
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(24.dp)) {
+            NavFocusButton("⚙", false, onSettings, Modifier.size(64.dp))
+            Text("20:45", color = Color.White, fontSize = 22.sp, fontWeight = FontWeight.Bold)
         }
-        Spacer(Modifier.weight(1f))
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Text("●", color = if (connected) Success else Color(0xFFFF6B6B), fontSize = 12.sp)
-            Spacer(Modifier.width(7.dp))
-            Text(if (connected) "متصل" else "غير متصل", color = MutedStrong, fontSize = 13.sp)
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(24.dp)) {
+            AppSection.entries.reversed().forEach { sec ->
+                NavFocusButton(sec.title, section == sec, { onSection(sec) })
+            }
+            Spacer(Modifier.width(8.dp))
+            Box(Modifier.width(6.dp).height(48.dp).background(BlueAction, RoundedCornerShape(8.dp)))
+            Text("RioNet TV", color = RioTextPrimary, fontSize = 28.sp, fontWeight = FontWeight.Bold)
         }
-        Spacer(Modifier.height(14.dp))
-        RailItem("الإعدادات", false, onSettings)
     }
 }
 
 @Composable
-private fun RailItem(label: String, selected: Boolean, onClick: () -> Unit) {
+private fun NavFocusButton(label: String, selected: Boolean, onClick: () -> Unit, modifier: Modifier = Modifier) {
     var focused by remember { mutableStateOf(false) }
-    val shape = RoundedCornerShape(14.dp)
-    Row(
-        Modifier.fillMaxWidth().height(54.dp)
+    val shape = RoundedCornerShape(if (selected) 999.dp else 16.dp)
+    Box(
+        modifier
+            .heightIn(min = 54.dp)
             .onFocusChanged { focused = it.isFocused }
-            .background(if (selected) Purple else if (focused) CardRaised else Color.Transparent, shape)
-            .border(if (focused && !selected) 2.dp else 0.dp, if (focused) Focus else Color.Transparent, shape)
+            .background(if (selected) Color(0xFF6845D9) else if (focused) ListSurface else Color.Transparent, shape)
+            .border(if (focused) 3.dp else 0.dp, if (focused) RioPrimary else Color.Transparent, shape)
             .clickable(onClick = onClick)
-            .padding(horizontal = 16.dp),
-        verticalAlignment = Alignment.CenterVertically
+            .padding(horizontal = if (label == "⚙") 0.dp else 20.dp),
+        contentAlignment = Alignment.Center
     ) {
-        Box(Modifier.size(7.dp).background(if (selected) Color.White else if (focused) PurpleSoft else Divider, RoundedCornerShape(50)))
-        Spacer(Modifier.width(12.dp))
-        Text(label, fontSize = 15.sp, fontWeight = if (selected || focused) FontWeight.Bold else FontWeight.Medium, color = if (selected || focused) Color.White else MutedStrong)
+        Text(label, color = if (selected || focused) RioTextPrimary else RioTextSecondary, fontSize = if (label == "⚙") 24.sp else 17.sp, fontWeight = FontWeight.Bold)
     }
 }
