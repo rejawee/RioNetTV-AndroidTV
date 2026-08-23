@@ -27,7 +27,6 @@ jobs:
           from pathlib import Path
           import re
 
-          # Root build file: keep the project on the stable AGP 8.x/API 36 line.
           root = Path('build.gradle.kts')
           text = root.read_text()
           text, n = re.subn(
@@ -43,20 +42,15 @@ jobs:
           app = Path('app/build.gradle.kts')
           text = app.read_text()
 
-          # API 36 is intentional for this RC build.
           text = re.sub(r'compileSdk\s*=\s*\d+', 'compileSdk = 36', text)
           text = re.sub(r'targetSdk\s*=\s*\d+', 'targetSdk = 36', text)
 
-          # Use the June 2026 stable Compose BOM and ENFORCE it. This prevents
-          # transitive dependencies from silently upgrading Compose UI to 1.12,
-          # which requires API 37 / AGP 9.1+.
           text = re.sub(
               r'(?:platform|enforcedPlatform)\("androidx\.compose:compose-bom:[^"]+"\)',
               'enforcedPlatform("androidx.compose:compose-bom:2026.06.00")',
               text,
           )
 
-          # Keep Activity on a version known to work with the stable Compose line.
           text = re.sub(
               r'androidx\.activity:activity-compose:[^"]+',
               'androidx.activity:activity-compose:1.13.0',
@@ -75,6 +69,34 @@ jobs:
               text = text.replace(
                   'implementation("androidx.activity:activity-ktx:1.13.0")',
                   'implementation("androidx.activity:activity-ktx:1.13.0")\n    implementation("androidx.compose.material3:material3")',
+              )
+
+          # Keep Java and Kotlin on the same JVM target. The project source had
+          # Java 1.8 while Kotlin compiled for 17, which Gradle rejects.
+          text = re.sub(
+              r'compileOptions\s*\{[^}]*\}',
+              'compileOptions {\n        sourceCompatibility = JavaVersion.VERSION_17\n        targetCompatibility = JavaVersion.VERSION_17\n    }',
+              text,
+              flags=re.S,
+          )
+          if 'compileOptions {' not in text:
+              text = text.replace(
+                  'android {',
+                  'android {\n    compileOptions {\n        sourceCompatibility = JavaVersion.VERSION_17\n        targetCompatibility = JavaVersion.VERSION_17\n    }',
+                  1,
+              )
+
+          text = re.sub(
+              r'kotlinOptions\s*\{[^}]*\}',
+              'kotlinOptions {\n        jvmTarget = "17"\n    }',
+              text,
+              flags=re.S,
+          )
+          if 'kotlinOptions {' not in text:
+              text = text.replace(
+                  'android {',
+                  'android {\n    kotlinOptions {\n        jvmTarget = "17"\n    }',
+                  1,
               )
 
           app.write_text(text)
@@ -115,21 +137,23 @@ jobs:
           echo "--- root build.gradle.kts ---"
           grep -n "com.android.application" build.gradle.kts
           echo "--- app/build.gradle.kts ---"
-          grep -nE "compileSdk|targetSdk|compose-bom|activity-compose|activity-ktx" app/build.gradle.kts
+          grep -nE "compileSdk|targetSdk|compose-bom|activity-compose|activity-ktx|sourceCompatibility|targetCompatibility|jvmTarget" app/build.gradle.kts
           grep -q 'version "8.10.1"' build.gradle.kts
           grep -q 'compileSdk = 36' app/build.gradle.kts
           grep -q 'enforcedPlatform("androidx.compose:compose-bom:2026.06.00")' app/build.gradle.kts
+          grep -q 'sourceCompatibility = JavaVersion.VERSION_17' app/build.gradle.kts
+          grep -q 'jvmTarget = "17"' app/build.gradle.kts
 
       - name: Build debug APK
         run: gradle --no-daemon --stacktrace :app:assembleDebug
 
       - name: Rename APK
-        run: cp app/build/outputs/apk/debug/app-debug.apk RioNetTV-AndroidTV-v1.0.1-Proxy-RC2.apk
+        run: cp app/build/outputs/apk/debug/app-debug.apk RioNetTV-AndroidTV-v1.0.1-Proxy-RC3.apk
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: RioNetTV-AndroidTV-v1.0.1-Proxy-RC2
-          path: RioNetTV-AndroidTV-v1.0.1-Proxy-RC2.apk
+          name: RioNetTV-AndroidTV-v1.0.1-Proxy-RC3
+          path: RioNetTV-AndroidTV-v1.0.1-Proxy-RC3.apk
           if-no-files-found: error
           retention-days: 14
