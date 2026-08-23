@@ -40,7 +40,8 @@ fun RootScreen(vm: RioNetViewModel) {
         Box(Modifier.weight(1f).fillMaxWidth()) {
             when (s.section) {
                 AppSection.HOME -> HomeScreen(s, { playing = it }, vm::toggleFavorite)
-                AppSection.LIVE, AppSection.MOVIES, AppSection.SERIES -> CatalogScreen(vm, s) { playing = it }
+                AppSection.LIVE -> LiveTvScreen(vm, s) { playing = it }
+                AppSection.MOVIES, AppSection.SERIES -> CatalogScreen(vm, s) { playing = it }
                 AppSection.MATCHES -> MatchesScreen(vm, s)
                 AppSection.FAVORITES -> FavoritesScreen(s, { playing = it }, vm::toggleFavorite)
             }
@@ -69,7 +70,7 @@ private fun RioTopNavigation(section: AppSection, onSection: (AppSection) -> Uni
                 NavFocusButton(sec.title, section == sec, { onSection(sec) })
             }
             Spacer(Modifier.width(8.dp))
-            Box(Modifier.width(6.dp).height(48.dp).background(BlueAction, RoundedCornerShape(8.dp)))
+            Box(Modifier.width(6.dp).height(48.dp).background(RioPrimary, RoundedCornerShape(8.dp)))
             Text("RioNet TV", color = RioTextPrimary, fontSize = 28.sp, fontWeight = FontWeight.Bold)
         }
     }
