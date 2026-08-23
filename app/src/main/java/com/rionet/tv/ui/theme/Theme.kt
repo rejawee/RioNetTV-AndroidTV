@@ -5,31 +5,31 @@ import androidx.compose.ui.graphics.Color
 import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.darkColorScheme
 
-val Bg = Color(0xFF05070C)
-val BgRaised = Color(0xFF080C14)
-val Panel = Color(0xFF0B111C)
-val Card = Color(0xFF101827)
-val CardRaised = Color(0xFF172235)
-val Purple = Color(0xFF7C5CFC)
-val PurpleSoft = Color(0xFF9B86FF)
-val Orange = Color(0xFFFF9D42)
-val Muted = Color(0xFF97A3B6)
+// Supplemental colors used while the existing screens migrate onto the Figma token set.
+val BgRaised = Color(0xFF070A10)
+val CardRaised = Color(0xFF171E2B)
+val PurpleSoft = Color(0xFFA98BFF)
 val MutedStrong = Color(0xFFC5CDDA)
-val Focus = Color(0xFFF4F7FF)
-val Success = Color(0xFF35D07F)
-val Divider = Color(0xFF202B3D)
+val Focus = RioPrimary
+val Success = RioSuccess
+val Divider = RioBorder
+val BlueAction = Color(0xFF2F75FF)
+val Control = Color(0xFF101622)
+val ListSurface = Color(0xFF171E2B)
+val BorderDefault = Color(0xFF2A354C)
 
 @Composable
 fun RioNetTheme(content: @Composable () -> Unit) {
     MaterialTheme(
         colorScheme = darkColorScheme(
-            primary = Purple,
+            primary = RioPrimary,
             secondary = PurpleSoft,
-            background = Bg,
-            surface = Panel,
-            onPrimary = Color.White,
-            onBackground = Color.White,
-            onSurface = Color.White
+            background = RioBackground,
+            surface = RioSurface,
+            error = RioError,
+            onPrimary = RioTextPrimary,
+            onBackground = RioTextPrimary,
+            onSurface = RioTextPrimary
         ),
         content = content
     )
