@@ -12,22 +12,29 @@ android {
         applicationId = "com.rionet.tv"
         minSdk = 23
         targetSdk = 36
-        versionCode = 10001
-        versionName = "1.0.1-proxy-rc1"
+        versionCode = 10004
+        versionName = "1.0.4-rc4-ui"
     }
 
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
+    }
+    kotlinOptions { jvmTarget = "17" }
     buildFeatures { compose = true; buildConfig = true }
     packaging { resources.excludes += "/META-INF/{AL2.0,LGPL2.1}" }
 }
 
 dependencies {
-    val composeBom = platform("androidx.compose:compose-bom:2026.08.00")
+    val composeBom = enforcedPlatform("androidx.compose:compose-bom:2026.06.00")
     implementation(composeBom)
     implementation("androidx.activity:activity-compose:1.13.0")
+    implementation("androidx.activity:activity-ktx:1.13.0")
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.9.2")
     implementation("androidx.lifecycle:lifecycle-runtime-compose:2.9.2")
     implementation("androidx.tv:tv-material:1.1.0")
     implementation("androidx.tv:tv-foundation:1.0.0")
+    implementation("androidx.compose.material3:material3")
     implementation("androidx.compose.material:material-icons-extended")
     implementation("androidx.datastore:datastore-preferences:1.1.7")
     implementation("androidx.security:security-crypto:1.1.0-alpha06")
