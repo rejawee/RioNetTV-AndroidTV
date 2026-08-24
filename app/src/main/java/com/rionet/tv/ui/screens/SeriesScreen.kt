@@ -57,7 +57,7 @@ fun SeriesScreen(vm: RioNetViewModel, s: UiState) {
                 }
             }
             Spacer(Modifier.height(20.dp))
-            SeriesDetailPanel(selected, s, vm)
+            SeriesDetailPanel(selected, s, vm, Modifier.weight(1f))
         }
     }
 }
@@ -90,9 +90,9 @@ private fun SeriesFeatureCard(item: SeriesEntry, selected: Boolean, onClick: () 
 }
 
 @Composable
-private fun SeriesDetailPanel(item: SeriesEntry?, s: UiState, vm: RioNetViewModel) {
+private fun SeriesDetailPanel(item: SeriesEntry?, s: UiState, vm: RioNetViewModel, modifier: Modifier = Modifier) {
     Box(
-        Modifier.fillMaxWidth().weight(1f).heightIn(min = 220.dp)
+        modifier.fillMaxWidth().heightIn(min = 220.dp)
             .background(Control, RoundedCornerShape(24.dp))
             .border(1.dp, BorderDefault, RoundedCornerShape(24.dp))
             .padding(horizontal = 34.dp, vertical = 24.dp)
